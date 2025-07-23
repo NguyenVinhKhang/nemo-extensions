@@ -58,7 +58,7 @@ _ = gettext.gettext
 import gi
 gi.require_version('Vte', '2.91')
 gi.require_version('Nemo', '3.0')
-from gi.repository import GObject, Nemo, Gtk, Gdk, Vte, GLib, Gio
+from gi.repository import GObject, Nemo, Gtk, Gdk, Vte, GLib, Gio, Pango
 
 BASE_KEY = "org.nemo.extensions.nemo-terminal"
 settings = Gio.Settings.new(BASE_KEY)
@@ -69,6 +69,20 @@ def terminal_or_default():
     if (terminalcmd == "") or (terminalcmd is None):
         terminalcmd = Vte.get_user_shell()
     return terminalcmd
+    
+def hex_to_rgba(hex_color):
+    """Convert a HEX color string to a Gdk.RGBA object."""
+    hex_color = hex_color.lstrip('#')  # Remove '#' if present
+    r = int(hex_color[0:2], 16) / 255.0  # Red
+    g = int(hex_color[2:4], 16) / 255.0  # Green
+    b = int(hex_color[4:6], 16) / 255.0  # Blue
+    a = 1.0  # Alpha (fully opaque)
+    rgba = Gdk.RGBA()
+    rgba.red = r
+    rgba.green = g
+    rgba.blue = b
+    rgba.alpha = a
+    return rgba
 
 class NemoTerminal(object):
     """Nemo Terminal itself.
@@ -85,6 +99,47 @@ class NemoTerminal(object):
         #Term
         self.shell_pid = -1
         self.term = Vte.Terminal()
+        
+        # Define Dracula color palette from GNOME Terminal profile
+        DRACULA_PALETTE = [
+            "#262626",  # Black
+            "#E356A7",  # Red
+            "#42E66C",  # Green
+            "#E4F34A",  # Yellow
+            "#9B6BDF",  # Blue
+            "#E64747",  # Magenta
+            "#75D7EC",  # Cyan
+            "#EFA554",  # White
+            "#7A7A7A",  # Bright Black
+            "#FF79C6",  # Bright Red
+            "#50FA7B",  # Bright Green
+            "#F1FA8C",  # Bright Yellow
+            "#BD93F9",  # Bright Blue
+            "#FF5555",  # Bright Magenta
+            "#8BE9FD",  # Bright Cyan
+            "#FFB86C"   # Bright White
+        ]
+        FOREGROUND = "#F8F8F2"  # Text color
+        BACKGROUND = "#282A36"  # Background color
+        CURSOR = "#FFFFFF"      # Cursor color
+        BOLD = "#6E46A4"        # Bold text color
+        HIGHLIGHT_FOREGROUND = "#0C04F7"  # Highlight text color
+        HIGHLIGHT_BACKGROUND = "#FDFDFD"  # Highlight background color
+
+        # Convert HEX colors to Gdk.RGBA
+        palette = [hex_to_rgba(color) for color in DRACULA_PALETTE]
+        foreground = hex_to_rgba(FOREGROUND)
+        background = hex_to_rgba(BACKGROUND)
+        cursor = hex_to_rgba(CURSOR)
+        bold = hex_to_rgba(BOLD)
+        highlight_foreground = hex_to_rgba(HIGHLIGHT_FOREGROUND)
+        highlight_background = hex_to_rgba(HIGHLIGHT_BACKGROUND)
+
+        # Apply colors to terminal
+        self.term.set_colors(foreground, background, palette)
+        self.term.set_color_cursor(cursor)
+        self.term.set_color_bold(bold)
+        self.term.set_color_highlight(highlight_foreground)
 
         settings.bind("audible-bell", self.term, "audible-bell", Gio.SettingsBindFlags.GET)
 
